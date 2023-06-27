@@ -1,4 +1,4 @@
-package forwardList
+package forwardlist
 
 import (
 	"algorithms/containers"
@@ -6,12 +6,15 @@ import (
 
 type ForwardListOperations[T any] interface {
 	Add(...T)
+	Pop()
 	AccessToEachElem(func(T))
 	Delete(int)
 	Front() *T
 	Back() *T
-	GetIter() iterator[T]
-	// Insert(T, int)
+	Begin() iterator[T]
+	End() iterator[T]
+	// Sort()
+	Insert(int, ...T)
 
 	containers.Container[T]
 	containers.Iterator[T]
@@ -29,26 +32,27 @@ type nodeForwardList[T any] struct {
 }
 
 type iterator[T any] struct {
-	ptrCurrent *nodeForwardList[T]
-	ptrBegin   *nodeForwardList[T]
-	ptrEnd     *nodeForwardList[T]
+	ptr *nodeForwardList[T]
 }
 
-func (list iterator[T]) Begin() containers.Iterator[T] {
-	return nil
+func (list *forwardList[T]) Begin() iterator[T] {
+	return iterator[T]{ptr: list.head}
 }
 
-func (list iterator[T]) End() containers.Iterator[T] {
-	return nil
+func (list *forwardList[T]) End() iterator[T] {
+	return iterator[T]{ptr: list.tail}
 }
 
-func (list *iterator[T]) GetVal() *T {
-	return nil
+func (iter *iterator[T]) GetVal() *T {
+	return &iter.ptr.data
 }
 
-func (list iterator[T]) Next() containers.Iterator[T] {
-
-	return nil
+func (iter *iterator[T]) Next() containers.Iterator[T] {
+	if iter.ptr == nil {
+		return nil
+	}
+	iter.ptr = iter.ptr.next
+	return iter
 }
 
 func (list *forwardList[T]) Front() *T {
@@ -96,8 +100,8 @@ func (list *forwardList[T]) Add(val ...T) {
 }
 
 func (list *forwardList[T]) Delete(ind containers.ContainerSize) {
-	if ind > list.size-containers.ContainerSize(1) {
-		return
+	if ind >= list.size {
+		panic("delete index out of range")
 	}
 
 	if ind == 0 {
@@ -107,7 +111,7 @@ func (list *forwardList[T]) Delete(ind containers.ContainerSize) {
 
 	var cnt containers.ContainerSize = 0
 	prevNode := list.head
-	for ; cnt < ind-containers.ContainerSize(1); prevNode = prevNode.next {
+	for ; cnt < ind; prevNode = prevNode.next {
 		cnt++
 	}
 
@@ -128,4 +132,48 @@ func (list *forwardList[T]) Contains(val T, comp func(*T, *T) bool) bool {
 		}
 	}
 	return false
+}
+
+func (list *forwardList[T]) Insert(ind containers.ContainerSize, val ...T) {
+	if ind >= list.size {
+		panic("insert index out of range")
+	}
+
+	var tempHead, tempTail *nodeForwardList[T]
+
+	for i := 0; i < len(val); i++ {
+		tempNode := &nodeForwardList[T]{data: val[i]}
+
+		if tempHead == nil {
+			tempHead = tempNode
+			tempTail = tempNode
+			continue
+		}
+
+		tempTail.next = tempNode
+		tempTail = tempNode
+	}
+
+	if ind == 0 {
+		tempTail.next = list.head
+		list.head = tempHead
+		return
+	}
+
+	currNode := list.head
+	for cnt := containers.ContainerSize(0); cnt < ind-containers.ContainerSize(1); cnt++ {
+		currNode = currNode.next
+	}
+
+	nextNode := currNode.next
+	currNode.next = tempHead
+	tempTail.next = nextNode
+}
+
+func (list *forwardList[T]) Pop() {
+	if list.head == nil {
+		return
+	}
+
+	list.head = list.head.next
 }
